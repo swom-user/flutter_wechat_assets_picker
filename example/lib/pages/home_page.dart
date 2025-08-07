@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
-import 'package:flutter/services.dart';
 
 import '../constants/extensions.dart';
 import '../customs/custom_picker_page.dart';
@@ -95,46 +94,41 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: Theme.of(context).brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: <Widget>[
-              header(context),
-              Expanded(
-                child: PageView(
-                  controller: controller,
-                  children: const <Widget>[
-                    MultiAssetsPage(),
-                    SingleAssetPage(),
-                    CustomPickersPage(),
-                  ],
-                ),
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            header(context),
+            Expanded(
+              child: PageView(
+                controller: controller,
+                children: const <Widget>[
+                  MultiAssetsPage(),
+                  SingleAssetPage(),
+                  CustomPickersPage(),
+                ],
               ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: currentIndex,
-          onTap: selectIndex,
-          items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.photo_library),
-              label: context.l10n.navMulti,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.photo),
-              label: context.l10n.navSingle,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.explore),
-              label: context.l10n.navCustom,
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentIndex,
+        onTap: selectIndex,
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.photo_library),
+            label: context.l10n.navMulti,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.photo),
+            label: context.l10n.navSingle,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.explore),
+            label: context.l10n.navCustom,
+          ),
+        ],
       ),
     );
   }

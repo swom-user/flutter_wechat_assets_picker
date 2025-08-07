@@ -29,6 +29,7 @@ class AssetPickerAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.blurRadius = 0,
     this.iconTheme,
     this.semanticsBuilder,
+    this.isPrivateMode = false,
   });
 
   /// Title widget. Typically a [Text] widget.
@@ -85,6 +86,8 @@ class AssetPickerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final IconThemeData? iconTheme;
 
+  final bool isPrivateMode;
+
   final Semantics Function(Widget appBar)? semanticsBuilder;
 
   bool canPop(BuildContext context) {
@@ -113,12 +116,10 @@ class AssetPickerAppBar extends StatelessWidget implements PreferredSizeWidget {
     } else {
       titleWidget = title;
     }
-
-    final EdgeInsets padding = MediaQuery.paddingOf(context);
     Widget child = Container(
       width: double.maxFinite,
-      height: _barHeight + padding.top,
-      padding: EdgeInsets.only(top: padding.top),
+      height: _barHeight + MediaQuery.paddingOf(context).top,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
       child: Stack(
         children: <Widget>[
           if (canPop(context))
@@ -202,17 +203,30 @@ class AssetPickerAppBar extends StatelessWidget implements PreferredSizeWidget {
     final Brightness effectiveBrightness = brightness ??
         appBarTheme.systemOverlayStyle?.statusBarBrightness ??
         theme.brightness;
-    final SystemUiOverlayStyle overlayStyle = appBarTheme.systemOverlayStyle ??
-        SystemUiOverlayStyle(
-          statusBarColor: effectiveBackgroundColor,
-          systemNavigationBarIconBrightness: Brightness.light,
-          statusBarIconBrightness: effectiveBrightness.reverse,
-          statusBarBrightness: effectiveBrightness,
-        );
-    child = AnnotatedRegion<SystemUiOverlayStyle>(
-      value: overlayStyle,
-      child: child,
-    );
+
+    if (isPrivateMode) {
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+      );
+    } else {
+      final SystemUiOverlayStyle overlayStyle =
+          appBarTheme.systemOverlayStyle ??
+              SystemUiOverlayStyle(
+                statusBarColor: effectiveBackgroundColor,
+                systemNavigationBarIconBrightness: effectiveBrightness,
+                statusBarIconBrightness: effectiveBrightness.reverse,
+                statusBarBrightness: effectiveBrightness,
+              );
+
+      child = AnnotatedRegion<SystemUiOverlayStyle>(
+        value: overlayStyle,
+        child: child,
+      );
+    }
 
     final Widget result = Material(
       // Wrap to ensure the child rendered correctly.

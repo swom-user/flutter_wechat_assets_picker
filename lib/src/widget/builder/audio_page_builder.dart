@@ -114,7 +114,9 @@ class _AudioPageBuilderState extends State<AudioPageBuilder> {
       );
     } finally {
       isLoaded = true;
-      safeSetState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -123,7 +125,9 @@ class _AudioPageBuilderState extends State<AudioPageBuilder> {
   void audioPlayerListener() {
     if (isControllerPlaying != isPlaying) {
       isPlaying = isControllerPlaying;
-      safeSetState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
 
     /// Add the current position into the stream.
@@ -141,12 +145,9 @@ class _AudioPageBuilderState extends State<AudioPageBuilder> {
   /// Title widget.
   /// 标题组件
   Widget get titleWidget {
-    // Excluding audio title from semantics since the label already includes.
-    return ExcludeSemantics(
-      child: ScaleText(
-        widget.asset.title ?? '',
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
-      ),
+    return ScaleText(
+      widget.asset.title ?? '',
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
     );
   }
 

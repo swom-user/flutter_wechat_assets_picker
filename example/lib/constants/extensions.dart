@@ -10,12 +10,11 @@ extension BuildContextExtension on BuildContext {
 }
 
 extension BrightnessExtension on Brightness {
-  bool get isDark => this == Brightness.dark;
+  // bool get isDark => this == Brightness.dark;
 
   bool get isLight => this == Brightness.light;
 
-  Brightness get reverse =>
-      this == Brightness.light ? Brightness.dark : Brightness.light;
+  Brightness get reverse => Brightness.light;
 }
 
 extension ColorExtension on Color {

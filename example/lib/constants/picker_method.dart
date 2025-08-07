@@ -96,29 +96,6 @@ class PickMethod {
     );
   }
 
-  factory PickMethod.livePhoto(BuildContext context, int maxAssetsCount) {
-    return PickMethod(
-      icon: '🎬',
-      name: context.l10n.pickMethodLivePhotoName,
-      description: context.l10n.pickMethodLivePhotoDescription,
-      method: (BuildContext context, List<AssetEntity> assets) {
-        return AssetPicker.pickAssets(
-          context,
-          pickerConfig: AssetPickerConfig(
-            maxAssets: maxAssetsCount,
-            selectedAssets: assets,
-            requestType: RequestType.image,
-            filterOptions: CustomFilter.sql(
-              where: '${CustomColumns.base.mediaType} = 1'
-                  ' AND '
-                  '${CustomColumns.darwin.mediaSubtypes} & (1 << 3) = (1 << 3)',
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   factory PickMethod.camera({
     required BuildContext context,
     required int maxAssetsCount,

@@ -2,8 +2,6 @@
 // Use of this source code is governed by an Apache license that can be found
 // in the LICENSE file.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart'
     show AssetEntity;
@@ -34,8 +32,6 @@ class _SingleAssetPageState extends State<SingleAssetPage>
       PickMethod.image(context, maxAssetsCount),
       PickMethod.video(context, maxAssetsCount),
       PickMethod.audio(context, maxAssetsCount),
-      if (Platform.isIOS || Platform.isMacOS)
-        PickMethod.livePhoto(context, maxAssetsCount),
       PickMethod.camera(
         context: context,
         maxAssetsCount: maxAssetsCount,

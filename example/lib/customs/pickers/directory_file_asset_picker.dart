@@ -171,10 +171,26 @@ class _DirectoryFileAssetPickerState extends State<DirectoryFileAssetPicker> {
                   themeData: AssetPicker.themeData(themeColor),
                 ),
               );
-              final List<File>? result =
-                  await Navigator.maybeOf(context)?.push<List<File>>(
-                AssetPickerViewerPageRoute(builder: (context) => viewer),
+              final PageRouteBuilder<List<File>> pageRoute =
+                  PageRouteBuilder<List<File>>(
+                pageBuilder: (
+                  BuildContext context,
+                  Animation<double> animation,
+                  Animation<double> secondaryAnimation,
+                ) {
+                  return viewer;
+                },
+                transitionsBuilder: (
+                  BuildContext context,
+                  Animation<double> animation,
+                  Animation<double> secondaryAnimation,
+                  Widget child,
+                ) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
               );
+              final List<File>? result =
+                  await Navigator.maybeOf(context)?.push<List<File>>(pageRoute);
               if (result != null && result != fileList) {
                 fileList
                   ..clear()
@@ -366,21 +382,30 @@ class FileAssetPickerBuilder
   Future<void> viewAsset(
     BuildContext context,
     int? index,
+    List<AssetEntity>? currentAssets,
     File currentAsset,
   ) async {
-    final Widget viewer = AssetPickerViewer<File, Directory>(
-      builder: FileAssetPickerViewerBuilderDelegate(
-        currentIndex: index ?? provider.selectedAssets.indexOf(currentAsset),
-        previewAssets: provider.selectedAssets,
-        provider: FileAssetPickerViewerProvider(provider.selectedAssets),
-        themeData: AssetPicker.themeData(themeColor),
-        selectedAssets: provider.selectedAssets,
-        selectorProvider: provider,
-      ),
-    );
     final List<File>? result =
         await Navigator.maybeOf(context)?.push<List<File>?>(
-      AssetPickerViewerPageRoute(builder: (context) => viewer),
+      PageRouteBuilder<List<File>>(
+        pageBuilder: (
+          BuildContext context,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+        ) {
+          return AssetPickerViewer<File, Directory>(
+            builder: FileAssetPickerViewerBuilderDelegate(
+              currentIndex:
+                  index ?? provider.selectedAssets.indexOf(currentAsset),
+              previewAssets: provider.selectedAssets,
+              provider: FileAssetPickerViewerProvider(provider.selectedAssets),
+              themeData: AssetPicker.themeData(themeColor),
+              selectedAssets: provider.selectedAssets,
+              selectorProvider: provider,
+            ),
+          );
+        },
+      ),
     );
     if (result != null) {
       Navigator.maybeOf(context)?.maybePop(result);
@@ -406,13 +431,34 @@ class FileAssetPickerBuilder
         selectorProvider: selectorProvider,
       ),
     );
-    return await Navigator.maybeOf(context)?.push<List<File>?>(
-      AssetPickerViewerPageRoute(builder: (context) => viewer),
+    final PageRouteBuilder<List<File>> pageRoute = PageRouteBuilder<List<File>>(
+      pageBuilder: (
+        BuildContext context,
+        Animation<double> animation,
+        Animation<double> secondaryAnimation,
+      ) {
+        return viewer;
+      },
+      transitionsBuilder: (
+        BuildContext context,
+        Animation<double> animation,
+        Animation<double> secondaryAnimation,
+        Widget child,
+      ) {
+        return FadeTransition(opacity: animation, child: child);
+      },
     );
+    return await Navigator.maybeOf(context)?.push<List<File>?>(pageRoute);
   }
 
   @override
-  void selectAsset(BuildContext context, File asset, int index, bool selected) {
+  void selectAsset(
+    BuildContext context,
+    File asset,
+    int index,
+    bool selected,
+    bool isMultipleSelection,
+  ) {
     if (selected) {
       provider.unSelectAsset(asset);
     } else {
@@ -424,7 +470,10 @@ class FileAssetPickerBuilder
   }
 
   @override
-  Widget androidLayout(BuildContext context) {
+  Widget androidLayout(
+    BuildContext context,
+    bool isMultipleSelection,
+  ) {
     return Scaffold(
       body: Column(
         children: <Widget>[
@@ -445,8 +494,15 @@ class FileAssetPickerBuilder
                             RepaintBoundary(
                               child: Column(
                                 children: <Widget>[
-                                  Expanded(child: assetsGridBuilder(context)),
-                                  bottomActionBar(context),
+                                  Expanded(
+                                    child: assetsGridBuilder(
+                                      context,
+                                      isMultipleSelection,
+                                      '',
+                                    ),
+                                  ),
+                                  if (!isAppleOS(context))
+                                    bottomActionBar(context),
                                 ],
                               ),
                             ),
@@ -479,7 +535,10 @@ class FileAssetPickerBuilder
   }
 
   @override
-  Widget appleOSLayout(BuildContext context) {
+  Widget appleOSLayout(
+    BuildContext context,
+    bool isMultipleSelection,
+  ) {
     return Stack(
       children: <Widget>[
         Positioned.fill(
@@ -495,12 +554,17 @@ class FileAssetPickerBuilder
                             child: Stack(
                               children: <Widget>[
                                 Positioned.fill(
-                                  child: assetsGridBuilder(context),
+                                  child: assetsGridBuilder(
+                                    context,
+                                    isMultipleSelection,
+                                    '',
+                                  ),
                                 ),
-                                PositionedDirectional(
-                                  bottom: 0.0,
-                                  child: bottomActionBar(context),
-                                ),
+                                if (!isSingleAssetMode || isAppleOS(context))
+                                  PositionedDirectional(
+                                    bottom: 0.0,
+                                    child: bottomActionBar(context),
+                                  ),
                               ],
                             ),
                           ),
@@ -542,7 +606,11 @@ class FileAssetPickerBuilder
   }
 
   @override
-  Widget assetsGridBuilder(BuildContext context) {
+  Widget assetsGridBuilder(
+    BuildContext context,
+    bool isMultipleSelection,
+    String requestType,
+  ) {
     appBarPreferredSize ??= appBar(context).preferredSize;
     int totalCount = provider.currentAssets.length;
     if (specialItemPosition != SpecialItemPosition.none) {
@@ -572,7 +640,7 @@ class FileAssetPickerBuilder
               }
               return Directionality(
                 textDirection: Directionality.of(context),
-                child: assetGridItemBuilder(c, index, assets),
+                child: assetGridItemBuilder(c, index, assets, true),
               );
             },
           ),
@@ -661,6 +729,7 @@ class FileAssetPickerBuilder
     BuildContext context,
     int index,
     List<File> currentAssets,
+    bool isMultipleSelection,
   ) {
     final int currentIndex = switch (specialItemPosition) {
       SpecialItemPosition.none || SpecialItemPosition.append => index,
@@ -677,7 +746,7 @@ class FileAssetPickerBuilder
       fit: StackFit.expand,
       children: <Widget>[
         Positioned.fill(child: builder),
-        selectIndicator(context, index, asset),
+        selectIndicator(context, index, asset, isMultipleSelection),
       ],
     );
   }
@@ -687,6 +756,7 @@ class FileAssetPickerBuilder
     BuildContext context,
     int index,
     File asset,
+    bool isMultipleSelection,
     Widget child,
   ) {
     return Semantics(child: child);
@@ -820,8 +890,7 @@ class FileAssetPickerBuilder
             itemCount: paths.length,
             itemBuilder: (_, int index) => pathEntityWidget(
               context: context,
-              list: paths,
-              index: index,
+              item: paths[index],
             ),
             separatorBuilder: (_, __) => Container(
               margin: const EdgeInsetsDirectional.only(start: 60.0),
@@ -904,11 +973,10 @@ class FileAssetPickerBuilder
   @override
   Widget pathEntityWidget({
     required BuildContext context,
-    required List<PathWrapper<Directory>> list,
-    required int index,
+    required PathWrapper<Directory> item,
     bool isAudio = false,
   }) {
-    final PathWrapper<Directory> wrapper = list[index];
+    final PathWrapper<Directory> wrapper = item;
     final Directory path = wrapper.path;
     final typed_data.Uint8List? data = wrapper.thumbnailData;
 
@@ -1019,7 +1087,12 @@ class FileAssetPickerBuilder
   }
 
   @override
-  Widget selectIndicator(BuildContext context, int index, File asset) {
+  Widget selectIndicator(
+    BuildContext context,
+    int index,
+    File asset,
+    bool isMultipleSelection,
+  ) {
     return Selector<FileAssetPickerProvider, List<File>>(
       selector: (_, FileAssetPickerProvider p) => p.selectedAssets,
       builder: (_, List<File> selectedAssets, __) {
@@ -1091,7 +1164,13 @@ class FileAssetPickerBuilder
   }
 
   @override
-  Widget selectedBackdrop(BuildContext context, int index, File asset) {
+  Widget selectedBackdrop(
+    BuildContext context,
+    List<AssetEntity>? currentAssets,
+    int index,
+    File asset,
+    bool isMultipleSelection,
+  ) {
     return Selector<FileAssetPickerProvider, List<File>>(
       selector: (_, FileAssetPickerProvider p) => p.selectedAssets,
       builder: (_, List<File> selectedAssets, __) {
@@ -1148,7 +1227,16 @@ class FileAssetPickerBuilder
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                if (isAppleOS(context)) appleOSLayout(c) else androidLayout(c),
+                if (isAppleOS(context))
+                  appleOSLayout(
+                    c,
+                    true,
+                  )
+                else
+                  androidLayout(
+                    c,
+                    true,
+                  ),
                 permissionOverlay(c),
               ],
             ),
@@ -1399,9 +1487,7 @@ class FileAssetPickerViewerBuilderDelegate
     return Theme(
       data: themeData,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: themeData.brightness.reverse == Brightness.dark
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark,
+        value: SystemUiOverlayStyle.light,
         child: Builder(
           builder: (BuildContext context) => Material(
             color: Colors.black,
@@ -1506,7 +1592,7 @@ class FileAssetPickerViewerBuilderDelegate
                   if (isAppleOS(context)) {
                     return _appleOSSelectButton(isSelected, asset);
                   } else {
-                    return _androidSelectButton(isSelected, asset);
+                    return _androidSelectButton(context, isSelected, asset);
                   }
                 },
               ),
@@ -1560,7 +1646,11 @@ class FileAssetPickerViewerBuilderDelegate
     );
   }
 
-  Widget _androidSelectButton(bool isSelected, File asset) {
+  Widget _androidSelectButton(
+    BuildContext context,
+    bool isSelected,
+    File asset,
+  ) {
     return Checkbox(
       value: isSelected,
       onChanged: (bool? value) {

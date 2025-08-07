@@ -68,7 +68,6 @@ class AssetPickerDelegate {
     AssetPickerConfig pickerConfig = const AssetPickerConfig(),
     PermissionRequestOption? permissionRequestOption,
     bool useRootNavigator = true,
-    RouteSettings? pageRouteSettings,
     AssetPickerPageRouteBuilder<List<AssetEntity>>? pageRouteBuilder,
   }) async {
     permissionRequestOption ??= PermissionRequestOption(
@@ -84,7 +83,6 @@ class AssetPickerDelegate {
         pageRouteBuilder?.call(const SizedBox.shrink()) ??
             AssetPickerPageRoute<List<AssetEntity>>(
               builder: (_) => const SizedBox.shrink(),
-              settings: pageRouteSettings,
             );
     final DefaultAssetPickerProvider provider = DefaultAssetPickerProvider(
       maxAssets: pickerConfig.maxAssets,
@@ -115,13 +113,10 @@ class AssetPickerDelegate {
         limitedPermissionOverlayPredicate:
             pickerConfig.limitedPermissionOverlayPredicate,
         pathNameBuilder: pickerConfig.pathNameBuilder,
-        assetsChangeCallback: pickerConfig.assetsChangeCallback,
-        assetsChangeRefreshPredicate: pickerConfig.assetsChangeRefreshPredicate,
         textDelegate: pickerConfig.textDelegate,
         themeColor: pickerConfig.themeColor,
         locale: Localizations.maybeLocaleOf(context),
         shouldAutoplayPreview: pickerConfig.shouldAutoplayPreview,
-        dragToSelect: pickerConfig.dragToSelect,
       ),
     );
     final List<AssetEntity>? result = await Navigator.maybeOf(
@@ -129,10 +124,7 @@ class AssetPickerDelegate {
       rootNavigator: useRootNavigator,
     )?.push<List<AssetEntity>>(
       pageRouteBuilder?.call(picker) ??
-          AssetPickerPageRoute<List<AssetEntity>>(
-            builder: (_) => picker,
-            settings: pageRouteSettings,
-          ),
+          AssetPickerPageRoute<List<AssetEntity>>(builder: (_) => picker),
     );
     return result;
   }
@@ -162,7 +154,6 @@ class AssetPickerDelegate {
         const PermissionRequestOption(),
     Key? key,
     bool useRootNavigator = true,
-    RouteSettings? pageRouteSettings,
     AssetPickerPageRouteBuilder<List<Asset>>? pageRouteBuilder,
   }) async {
     await permissionCheck(requestOption: permissionRequestOption);
@@ -176,11 +167,9 @@ class AssetPickerDelegate {
       rootNavigator: useRootNavigator,
     )?.push<List<Asset>>(
       pageRouteBuilder?.call(picker) ??
-          AssetPickerPageRoute<List<Asset>>(
-            builder: (_) => picker,
-            settings: pageRouteSettings,
-          ),
+          AssetPickerPageRoute<List<Asset>>(builder: (_) => picker),
     );
+    await PhotoManager.clearFileCache();
     return result;
   }
 
@@ -244,67 +233,13 @@ class AssetPickerDelegate {
   /// {@endtemplate}
   ThemeData themeData(Color? themeColor, {bool light = false}) {
     themeColor ??= defaultThemeColorWeChat;
-    if (light) {
-      return ThemeData.light().copyWith(
-        primaryColor: Colors.grey[50],
-        primaryColorLight: Colors.grey[50],
-        primaryColorDark: Colors.grey[50],
-        canvasColor: Colors.grey[100],
-        scaffoldBackgroundColor: Colors.grey[50],
-        cardColor: Colors.grey[50],
-        highlightColor: Colors.transparent,
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: themeColor,
-          selectionColor: themeColor.withAlpha(100),
-          selectionHandleColor: themeColor,
-        ),
-        indicatorColor: themeColor,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[100],
-          systemOverlayStyle: const SystemUiOverlayStyle(
-            statusBarBrightness: Brightness.light,
-            statusBarIconBrightness: Brightness.dark,
-          ),
-          iconTheme: IconThemeData(color: Colors.grey[900]),
-          elevation: 0,
-        ),
-        bottomAppBarTheme: BottomAppBarTheme(
-          color: Colors.grey[100],
-        ),
-        buttonTheme: ButtonThemeData(buttonColor: themeColor),
-        iconTheme: IconThemeData(color: Colors.grey[900]),
-        checkboxTheme: CheckboxThemeData(
-          checkColor: MaterialStateProperty.all(Colors.black),
-          fillColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return themeColor;
-            }
-            return null;
-          }),
-          side: const BorderSide(color: Colors.black),
-        ),
-        colorScheme: ColorScheme(
-          primary: Colors.grey[50]!,
-          secondary: themeColor,
-          background: Colors.grey[50]!,
-          surface: Colors.grey[50]!,
-          brightness: Brightness.light,
-          error: const Color(0xffcf6679),
-          onPrimary: Colors.white,
-          onSecondary: Colors.grey[100]!,
-          onSurface: Colors.black,
-          onBackground: Colors.black,
-          onError: Colors.white,
-        ),
-      );
-    }
-    return ThemeData.dark().copyWith(
-      primaryColor: Colors.grey[900],
-      primaryColorLight: Colors.grey[900],
-      primaryColorDark: Colors.grey[900],
-      canvasColor: Colors.grey[850],
-      scaffoldBackgroundColor: Colors.grey[900],
-      cardColor: Colors.grey[900],
+    return ThemeData.light().copyWith(
+      primaryColor: Colors.grey[50],
+      primaryColorLight: Colors.grey[50],
+      primaryColorDark: Colors.grey[50],
+      canvasColor: Colors.grey[100],
+      scaffoldBackgroundColor: Colors.grey[50],
+      cardColor: Colors.grey[50],
       highlightColor: Colors.transparent,
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: themeColor,
@@ -313,41 +248,41 @@ class AssetPickerDelegate {
       ),
       indicatorColor: themeColor,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.grey[850],
+        backgroundColor: Colors.grey[100],
         systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarBrightness: Brightness.dark,
-          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: Colors.grey[900]),
         elevation: 0,
       ),
       bottomAppBarTheme: BottomAppBarTheme(
-        color: Colors.grey[850],
+        color: Colors.grey[100],
       ),
       buttonTheme: ButtonThemeData(buttonColor: themeColor),
-      iconTheme: const IconThemeData(color: Colors.white),
+      iconTheme: IconThemeData(color: Colors.grey[900]),
       checkboxTheme: CheckboxThemeData(
-        checkColor: MaterialStateProperty.all(Colors.white),
+        checkColor: MaterialStateProperty.all(Colors.black),
         fillColor: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) {
             return themeColor;
           }
           return null;
         }),
-        side: const BorderSide(color: Colors.white),
+        side: const BorderSide(color: Colors.black),
       ),
       colorScheme: ColorScheme(
-        primary: Colors.grey[900]!,
+        primary: Colors.grey[50]!,
         secondary: themeColor,
-        background: Colors.grey[900]!,
-        surface: Colors.grey[900]!,
-        brightness: Brightness.dark,
+        background: Colors.grey[50]!,
+        surface: Colors.grey[50]!,
+        brightness: Brightness.light,
         error: const Color(0xffcf6679),
-        onPrimary: Colors.black,
-        onSecondary: Colors.grey[850]!,
-        onSurface: Colors.white,
-        onBackground: Colors.white,
-        onError: Colors.black,
+        onPrimary: Colors.white,
+        onSecondary: Colors.grey[100]!,
+        onSurface: Colors.black,
+        onBackground: Colors.black,
+        onError: Colors.white,
       ),
     );
   }

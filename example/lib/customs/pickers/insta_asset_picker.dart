@@ -379,6 +379,7 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
   Future<void> viewAsset(
     BuildContext context,
     int? index,
+    List<AssetEntity>? currentAssets,
     AssetEntity currentAsset,
   ) async {
     if (index == null) {
@@ -387,7 +388,7 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
     // if is preview asset, unselect it
     if (provider.selectedAssets.isNotEmpty &&
         _previewAsset.value == currentAsset) {
-      selectAsset(context, currentAsset, index, true);
+      selectAsset(context, currentAsset, index, true, true);
       _previewAsset.value = provider.selectedAssets.isEmpty
           ? currentAsset
           : provider.selectedAssets.last;
@@ -395,7 +396,7 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
     }
 
     _previewAsset.value = currentAsset;
-    selectAsset(context, currentAsset, index, false);
+    selectAsset(context, currentAsset, index, false, true);
   }
 
   @override
@@ -404,10 +405,11 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
     AssetEntity asset,
     int index,
     bool selected,
+    bool isMultipleSelection,
   ) async {
     final double thumbnailPosition = indexPosition(context, index);
     final int prevCount = provider.selectedAssets.length;
-    await super.selectAsset(context, asset, index, selected);
+    await super.selectAsset(context, asset, index, selected, true);
 
     // update preview asset with selected
     final List<AssetEntity> selectedAssets = provider.selectedAssets;
@@ -532,7 +534,10 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
   }
 
   @override
-  Widget androidLayout(BuildContext context) {
+  Widget androidLayout(
+    BuildContext context,
+    bool isMultipleSelection,
+  ) {
     appBarPreferredSize ??= appBar(context).preferredSize;
     final double appBarHeight = appBarPreferredSize!.height;
     // height of appbar + viewer + path selector row
@@ -640,7 +645,14 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
   }
 
   @override
-  Widget appleOSLayout(BuildContext context) => androidLayout(context);
+  Widget appleOSLayout(
+    BuildContext context,
+    bool isMultipleSelection,
+  ) =>
+      androidLayout(
+        context,
+        isMultipleSelection,
+      );
 
   Widget _buildListAlbums(BuildContext context) {
     appBarPreferredSize ??= appBar(context).preferredSize;
@@ -687,7 +699,13 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
                       top: -appBarPreferredSize!.height,
                     ),
                   ),
-                  child: RepaintBoundary(child: assetsGridBuilder(context)),
+                  child: RepaintBoundary(
+                    child: assetsGridBuilder(
+                      context,
+                      true,
+                      '',
+                    ),
+                  ),
                 )
               : loadingIndicator(context),
         );
@@ -697,7 +715,12 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
 
   /// To show selected assets indicator and preview asset overlay
   @override
-  Widget selectIndicator(BuildContext context, int index, AssetEntity asset) {
+  Widget selectIndicator(
+    BuildContext context,
+    int index,
+    AssetEntity asset,
+    bool isMultipleSelection,
+  ) {
     final List<AssetEntity> selectedAssets = provider.selectedAssets;
     final Duration duration = switchingPathDuration * 0.75;
 
@@ -736,7 +759,7 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
         return Positioned.fill(
           child: GestureDetector(
             onTap: isPreviewEnabled
-                ? () => viewAsset(context, index, asset)
+                ? () => viewAsset(context, index, null, asset)
                 : null,
             child: AnimatedContainer(
               duration: switchingPathDuration,
@@ -749,8 +772,13 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
                 child: isSelected && !isSingleAssetMode
                     ? GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: () =>
-                            selectAsset(context, asset, index, isSelected),
+                        onTap: () => selectAsset(
+                          context,
+                          asset,
+                          index,
+                          isSelected,
+                          isMultipleSelection,
+                        ),
                         child: innerSelector,
                       )
                     : innerSelector,
@@ -763,7 +791,13 @@ class InstaAssetPickerBuilder extends DefaultAssetPickerBuilderDelegate {
   }
 
   @override
-  Widget selectedBackdrop(BuildContext context, int index, AssetEntity asset) =>
+  Widget selectedBackdrop(
+    BuildContext context,
+    List<AssetEntity>? currentAssets,
+    int index,
+    AssetEntity asset,
+    bool isMultipleSelection,
+  ) =>
       const SizedBox.shrink();
 }
 

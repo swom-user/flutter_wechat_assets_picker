@@ -3,7 +3,6 @@
 // in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -239,10 +238,7 @@ abstract class AssetPickerProvider<Asset, Path> extends ChangeNotifier {
 
   /// Select asset.
   /// 选中资源
-  void selectAsset(Asset item) {
-    if (selectedAssets.length == maxAssets || selectedAssets.contains(item)) {
-      return;
-    }
+  Future<void> selectAsset(Asset item) async {
     final List<Asset> set = selectedAssets.toList();
     set.add(item);
     selectedAssets = set;
@@ -272,7 +268,12 @@ class DefaultAssetPickerProvider
     this.filterOptions,
     Duration initializeDelayDuration = const Duration(milliseconds: 250),
   }) {
-    init(initializeDelayDuration);
+    Singleton.sortPathDelegate = sortPathDelegate ?? SortPathDelegate.common;
+    // Call [getAssetList] with route duration when constructing.
+    Future<void>.delayed(initializeDelayDuration, () async {
+      await getPaths(onlyAll: true);
+      await getPaths(onlyAll: false);
+    });
   }
 
   @visibleForTesting
@@ -306,25 +307,6 @@ class DefaultAssetPickerProvider
   /// 将会与基础条件进行合并。
   final PMFilter? filterOptions;
 
-  /// Initialize the provider.
-  void init(Duration initializeDelayDuration) {
-    Singleton.sortPathDelegate = sortPathDelegate ?? SortPathDelegate.common;
-    // Call [getAssetList] with route duration when constructing.
-    Future<void>.delayed(initializeDelayDuration, () async {
-      if (!_mounted) {
-        return;
-      }
-
-      await getPaths(onlyAll: true);
-
-      if (!_mounted) {
-        return;
-      }
-
-      await getPaths(onlyAll: false);
-    });
-  }
-
   @override
   set currentPath(PathWrapper<AssetPathEntity>? value) {
     if (value == _currentPath) {
@@ -348,10 +330,14 @@ class DefaultAssetPickerProvider
     bool onlyAll = false,
     bool keepPreviousCount = false,
   }) async {
-    final PMFilter? options;
+    final PMFilter options;
     final fog = filterOptions;
-    if (fog is FilterOptionGroup) {
-      options = FilterOptionGroup(
+    if (fog == null) {
+      options = AdvancedCustomFilter(
+        orderBy: [OrderByItem.desc(CustomColumns.base.createDate)],
+      );
+    } else if (fog is FilterOptionGroup) {
+      final newOptions = FilterOptionGroup(
         imageOption: const FilterOption(
           sizeConstraint: SizeConstraint(ignoreSize: true),
         ),
@@ -363,11 +349,9 @@ class DefaultAssetPickerProvider
         containsPathModified: sortPathsByModifiedDate,
         createTimeCond: DateTimeCond.def().copyWith(ignore: true),
         updateTimeCond: DateTimeCond.def().copyWith(ignore: true),
-      )..merge(fog);
-    } else if (fog == null && Platform.isAndroid) {
-      options = AdvancedCustomFilter(
-        orderBy: [OrderByItem.desc(CustomColumns.android.modifiedDate)],
       );
+      newOptions.merge(fog);
+      options = newOptions;
     } else {
       options = fog;
     }
@@ -507,10 +491,7 @@ class DefaultAssetPickerProvider
         (PathWrapper<AssetPathEntity> p) => p.path == path.path,
       );
       if (index != -1) {
-        _paths[index] = _paths[index].copyWith(
-          assetCount: assetCount,
-          thumbnailData: data,
-        );
+        _paths[index] = _paths[index].copyWith(thumbnailData: data);
         notifyListeners();
       }
       return data;
